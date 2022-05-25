@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>DIDツール - DID tools</title>
+</head><body>
+<h1>DIDツール - DID tools</h1>
+
+<button id=btn>DID作成</button><br>
+DID:<br>
+<input id=did><br>
+DID鍵:<br>
+<textarea id=secret></textarea><br>
+<button id=btn2>DID鍵をファイルでダウンロード</button>
+<hr>
+本文:<br>
+<textarea id=text></textarea><br>
+<button id=btnsig>本文をDID鍵で電子署名</button><br>
+電子署名:<br>
+<input id=didsig><br>
+<button id=btn3>本文をDIDと電子署名で検証</button><span id=result></span>
+<hr>
+Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
+
+<script type="module">
+import { Ed25519 } from "./Ed25519.js";
+import { DID } from "./DID.js";
+import { PEMFile } from "./PEMFile.js";
+import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
+import { Base58 } from "https://code4fukui.github.io/Base58/Base58.js";
+
+btn.onclick = () => {
+  const keys = Ed25519.generateKeyPair();
+  did.value = DID.encode(keys.publicKey);
+  secret.value = PEMFile.encode(keys);
+};
+secret.onchange = () => {
+  const keys = PEMFile.decode(secret.value);
+  if (!keys) {
+    return;
+  }
+  did.value = DID.encode(keys.publicKey);
+};
+btn2.onclick = async () => {
+  if (secret.value) {
+    await downloadFile("key.secret.pem", new TextEncoder().encode(secret.value));
+  }
+};
+class Text {
+  static normalize(s) {
+    const ss = s.trim().split("\n");
+    return ss.map(s => s.trim()).join("\n");
+  }
+  static encode(s) {
+    return new TextEncoder().encode(s);
+  }
+  static decode(bin) {
+    return new TextDecoder().decode(bin);
+  }
+}
+btnsig.onclick = () => {
+  const ss = Text.normalize(text.value);
+  if (text.value != ss) {
+    text.value = ss;
+  }
+  const keys = PEMFile.decode(secret.value);
+  if (!keys) {
+    return;
+  }
+  const message = Text.encode(ss);
+  const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
+  //didsig.value = Base64.encode(sig);
+  didsig.value = "did:sign:z" + Base58.encode(sig);
+};
+btn3.onclick = () => {
+  try {
+    const ss = Text.normalize(text.value);
+    if (text.value != ss) {
+      text.value = ss;
+    }
+    const publicKey = DID.decode(did.value);
+    if (!publicKey) {
+      alert("DIDが設定されていません");
+      return;
+    }
+    const message = Text.encode(ss);
+    if (!message) {
+      alert("本文が設定されていません");
+      return;
+    }
+    //const signature = Base64.decode(didsig.value);
+    const sigpre = "did:sign:z";
+    if (!didsig.value.startsWith(sigpre)) {
+      alert("電子署名が設定されていません");
+      return;
+    }
+    const signature = Base58.decode(didsig.value.substring(sigpre.length));
+    if (!signature) {
+      alert("電子署名が設定されていません");
+      return;
+    }
+    const chk = Ed25519.verify({ signature, publicKey, message, encoding: "binary" });
+    if (chk) {
+      result.textContent = "電子署名が検証できました。";
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+  }
+  result.textContent = "！！不正な電子署名です！！";
+};
+</script>
+
+<style>
+body {
+  margin: 2em;
+}
+button {
+  padding: .5em;
+  font-size: 120%;
+  margin: .5em;
+}
+input {
+  width: 80vw;
+  padding: .5em;
+  margin: .5em;
+}
+textarea {
+  width: 80vw;
+  height: 10em;
+  padding: .5em;
+  margin: .5em;
+}
+#result {
+  font-size: 120%;
+  color: red;
+  margin-left: 1em;
+}
+</style>
+
+</body>
+</html>
