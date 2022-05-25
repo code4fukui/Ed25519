@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>DIDツール - DID tools</title>
+<title>DID電子署名ツール - DID sign tool</title>
 </head><body>
-<h1>DIDツール - DID tools</h1>
+<h1>DID電子署名ツール - DID sign tools</h1>
 
 <button id=btn>DID作成</button><br>
 DID:<br>
@@ -12,12 +12,11 @@ DID鍵:<br>
 <hr>
 本文:<br>
 <textarea id=text></textarea><br>
-<button id=btnsig>本文をDID鍵で電子署名</button><br>
-電子署名:<br>
-<input id=didsig><br>
-<button id=btn3>本文をDIDと電子署名で検証</button><span id=result></span>
+<button id=btnsig>本文にDID鍵で電子署名を追記</button>
+<button id=btn3>電子署名付き本文をDIDで検証</button><span id=result></span>
 <hr>
 Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
+Blog: <a href=https://fukuno.jig.jp/3591>福野泰介の一日一創</a><br>
 
 <script type="module">
 import { Ed25519 } from "./Ed25519.js";
@@ -45,8 +44,23 @@ btn2.onclick = async () => {
 };
 class Text {
   static normalize(s) {
-    const ss = s.trim().split("\n");
-    return ss.map(s => s.trim()).join("\n");
+    const s2 = s.trim().split("\n");
+    let ss = s2.map(s => s.trim());
+    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
+      ss[ss.length - 1] = "";
+      const s0 = ss.join("\n");
+      const s2 = s0.trim().split("\n");
+      ss = s2.map(s => s.trim());
+    }
+    return ss.join("\n")
+  }
+  static extractSign(s) {
+    const s2 = s.trim().split("\n");
+    let ss = s2.map(s => s.trim());
+    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
+      return ss[ss.length - 1];
+    }
+    return null;
   }
   static encode(s) {
     return new TextEncoder().encode(s);
@@ -67,14 +81,12 @@ btnsig.onclick = () => {
   const message = Text.encode(ss);
   const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
   //didsig.value = Base64.encode(sig);
-  didsig.value = "did:sign:z" + Base58.encode(sig);
+  text.value += "\n\ndid:sign:z" + Base58.encode(sig);
 };
 btn3.onclick = () => {
+  result.textContent = "";
   try {
     const ss = Text.normalize(text.value);
-    if (text.value != ss) {
-      text.value = ss;
-    }
     const publicKey = DID.decode(did.value);
     if (!publicKey) {
       alert("DIDが設定されていません");
@@ -86,12 +98,13 @@ btn3.onclick = () => {
       return;
     }
     //const signature = Base64.decode(didsig.value);
+    const ssig = Text.extractSign(text.value);
     const sigpre = "did:sign:z";
-    if (!didsig.value.startsWith(sigpre)) {
+    if (!ssig || !ssig.startsWith(sigpre)) {
       alert("電子署名が設定されていません");
       return;
     }
-    const signature = Base58.decode(didsig.value.substring(sigpre.length));
+    const signature = Base58.decode(ssig.substring(sigpre.length));
     if (!signature) {
       alert("電子署名が設定されていません");
       return;
@@ -132,6 +145,9 @@ textarea {
   font-size: 120%;
   color: red;
   margin-left: 1em;
+}
+a {
+  color: gray !important;
 }
 </style>
 
