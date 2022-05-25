@@ -21,7 +21,9 @@ btn.onclick = () => {
   secret.value = PEMFile.encode(keys);
 };
 btn2.onclick = async () => {
-  await downloadFile("key.secret.pem", new TextEncoder().encode(secret.value));
+  if (secret.value) {
+    await downloadFile("key.secret.pem", new TextEncoder().encode(secret.value));
+  }
 };
 </script>
 
