@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+</head><body>
+<h1>DID作成 - create your DID</h1>
+<button id=btn>DID作成</button><br>
+<input id=did><br>
+<textarea id=secret></textarea><br>
+<button id=btn2>鍵ファイルのダウンロード</button>
+<hr>
+Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
+
+<script type="module">
+import { Ed25519 } from "./Ed25519.js";
+import { DID } from "./DID.js";
+import { PEMFile } from "./PEMFile.js";
+import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
+
+btn.onclick = () => {
+  const keys = Ed25519.generateKeyPair();
+  did.value = DID.encode(keys.publicKey);
+  secret.value = PEMFile.encode(keys);
+};
+btn2.onclick = async () => {
+  await downloadFile("key.secret.pem", new TextEncoder().encode(secret.value));
+};
+</script>
+
+<style>
+button {
+  padding: .5em;
+  font-size: 120%;
+  margin: .5em;
+}
+#did {
+  width: 80vw;
+  padding: .5em;
+  margin: .5em;
+}
+#secret {
+  width: 80vw;
+  height: 10em;
+  padding: .5em;
+  margin: .5em;
+}
+</style>
+
+</body>
+</html>
