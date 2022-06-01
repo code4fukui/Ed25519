@@ -19,3 +19,7 @@ output files
 ## test code
 
 - [test-ed25519](https://github.com/taisukef/forge-es/blob/es/examples/test-ed25519.js)
+
+## blog
+
+- [サイバー時代のハンコ、テキストにDIDで署名する「DID電子署名ツール」と禁断のDID鍵公開](https://fukuno.jig.jp/3591)
