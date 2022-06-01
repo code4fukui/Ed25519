@@ -1,0 +1,167 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>DID電子署名ツールβ - DID sign tool</title>
+</head><body>
+<h1>DID電子署名ツールβ - DID sign tools</h1>
+
+<button id=btn disabled>DID作成</button><br>
+<table>
+<tr><td>DID:</td><td><input id=did></td></tr>
+<tr><td>DIDシークレット:</td><td><input id=secret></td></tr>
+<tr><td></td><td><button id=btn2 disabled>DIDシークレットをPEMファイルでダウンロード</button></td></tr>
+</table>
+<hr>
+本文:<br>
+<textarea id=text></textarea><br>
+<button id=btnsig disabled>本文にDIDシークレットで電子署名を付ける</button>
+<button id=btn3 disabled>電子署名付き本文をDIDで検証</button><span id=result></span>
+<hr>
+Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
+Blog: <a href=https://fukuno.jig.jp/3591>福野泰介の一日一創</a><br>
+
+<script type="module">
+import { Ed25519 } from "./Ed25519.js";
+import { DID } from "./DID.js";
+import { PEMFile } from "./PEMFile.js";
+import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
+import { Base58 } from "https://code4fukui.github.io/Base58/Base58.js";
+
+btn.disabled = false;
+
+btn.onclick = () => {
+  const keys = Ed25519.generateKeyPair();
+  //console.log(keys)
+  did.value = DID.encode(keys.publicKey, "id");
+  secret.value = DID.encode(keys.privateKey, "secret");
+  //secret.value = PEMFile.encode(keys);
+  btn2.disabled = false;
+  btn3.disabled = false;
+  btnsig.disabled = false;
+};
+secret.onchange = () => {
+  const keys = DID.decode(secret.value);
+  //const keys = PEMFile.decode(secret.value);
+  if (!keys) {
+    return;
+  }
+  did.value = DID.encode(keys.publicKey);
+};
+btn2.onclick = async () => {
+  if (secret.value) {
+    const keys = DID.decode(secret.value);
+    const pem = PEMFile.encode(keys);
+    await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
+  }
+};
+class Text {
+  static normalize(s) {
+    const s2 = s.trim().split("\n");
+    let ss = s2.map(s => s.trim());
+    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
+      ss[ss.length - 1] = "";
+      const s0 = ss.join("\n");
+      const s2 = s0.trim().split("\n");
+      ss = s2.map(s => s.trim());
+    }
+    return ss.join("\n")
+  }
+  static extractSign(s) {
+    const s2 = s.trim().split("\n");
+    let ss = s2.map(s => s.trim());
+    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
+      return ss[ss.length - 1];
+    }
+    return null;
+  }
+  static encode(s) {
+    return new TextEncoder().encode(s);
+  }
+  static decode(bin) {
+    return new TextDecoder().decode(bin);
+  }
+}
+btnsig.onclick = () => {
+  const ss = Text.normalize(text.value);
+  if (text.value != ss) {
+    text.value = ss;
+  }
+  //const keys = PEMFile.decode(secret.value);
+  const keys = DID.decode(secret.value);
+  if (!keys) {
+    alert("DIDシークレットがありません");
+    return;
+  }
+  const message = Text.encode(ss);
+  const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
+  //didsig.value = Base64.encode(sig);
+  text.value += "\n\ndid:sign:z" + Base58.encode(sig);
+};
+btn3.onclick = () => {
+  result.textContent = "";
+  try {
+    const ss = Text.normalize(text.value);
+    const publicKey = DID.decode(did.value);
+    if (!publicKey) {
+      alert("DIDが設定されていません");
+      return;
+    }
+    const message = Text.encode(ss);
+    if (!message) {
+      alert("本文が設定されていません");
+      return;
+    }
+    //const signature = Base64.decode(didsig.value);
+    const ssig = Text.extractSign(text.value);
+    const sigpre = "did:sign:z";
+    if (!ssig || !ssig.startsWith(sigpre)) {
+      alert("電子署名が設定されていません");
+      return;
+    }
+    const signature = Base58.decode(ssig.substring(sigpre.length));
+    if (!signature) {
+      alert("電子署名が設定されていません");
+      return;
+    }
+    const chk = Ed25519.verify({ signature, publicKey, message, encoding: "binary" });
+    if (chk) {
+      result.textContent = "電子署名が検証できました。";
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+  }
+  result.textContent = "！！不正な電子署名です！！";
+};
+</script>
+
+<style>
+body {
+  margin: 2em;
+}
+button {
+  padding: .5em;
+  font-size: 120%;
+  margin: .5em;
+}
+input {
+  width: 60vw;
+  padding: .5em;
+  margin: .5em;
+}
+textarea {
+  width: 80vw;
+  height: 10em;
+  padding: .5em;
+  margin: .5em;
+}
+#result {
+  font-size: 120%;
+  color: red;
+  margin-left: 1em;
+}
+a {
+  color: gray !important;
+}
+</style>
+
+</body>
+</html>
