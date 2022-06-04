@@ -11,13 +11,13 @@ Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI<
 
 <script type="module">
 import { Ed25519 } from "./Ed25519.js";
-import { DID } from "./DID.js";
+import { DIDKey } from "./DIDKey.js";
 import { PEMFile } from "./PEMFile.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 
 btn.onclick = () => {
   const keys = Ed25519.generateKeyPair();
-  did.value = DID.encode(keys.publicKey);
+  did.value = DIDKey.encode(keys.publicKey);
   secret.value = PEMFile.encode(keys);
 };
 btn2.onclick = async () => {
