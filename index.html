@@ -3,112 +3,118 @@
 </head><body>
 <h1>DID電子署名ツール - DID sign tools</h1>
 
-<button id=btn>DID作成</button><br>
-DID:<br>
-<input id=did><br>
-DID鍵:<br>
-<textarea id=secret></textarea><br>
-<button id=btn2>DID鍵をファイルでダウンロード</button>
+<button id=btn disabled>DID作成</button><br>
+<table>
+<tr><td>DID</td><td><input id=did></td></tr>
+<tr><td>パスワード</td><td><input id=secret></td></tr>
+</table>
 <hr>
-本文:<br>
+本文<br>
 <textarea id=text></textarea><br>
-<button id=btnsig>本文にDID鍵で電子署名を追記</button>
-<button id=btn3>電子署名付き本文をDIDで検証</button><span id=result></span>
+<button id=btnsig disabled>本文にDIDとパスワードで電子署名を付ける</button>
+<button id=btnverify disabled>電子署名付き本文をDIDで検証する</button><span id=result></span>
+<hr>
+<button id=btnpub disabled class=download>DIDをPubファイルとして保存する</button>
+<button id=btnpem disabled class=download>DIDとパスワードをPEMファイルとして保存する</button><br>
 <hr>
 Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
-Blog: <a href=https://fukuno.jig.jp/3591>福野泰介の一日一創</a><br>
+Reference: <a href=https://www.w3.org/TR/did-core/>Decentralized Identifiers (DIDs) v1.0</a> / <a href=https://w3c-ccg.github.io/did-method-key/>The did:key Method v0.7</a><br>
+Blog: <a href=https://fukuno.jig.jp/3600>福野泰介の一日一創</a><br>
 
 <script type="module">
 import { Ed25519 } from "./Ed25519.js";
-import { DID } from "./DID.js";
+import { DIDKey } from "./DIDKey.js";
 import { PEMFile } from "./PEMFile.js";
+import { PubFile } from "./PubFile.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { Base58 } from "https://code4fukui.github.io/Base58/Base58.js";
+import { Text } from "./Text.js";
+import { bincat } from "https://js.sabae.cc/binutil.js";
+
+btn.disabled = false;
 
 btn.onclick = () => {
   const keys = Ed25519.generateKeyPair();
-  did.value = DID.encode(keys.publicKey);
-  secret.value = PEMFile.encode(keys);
+  //console.log(keys)
+  did.value = DIDKey.encodePublicKey(keys.publicKey);
+  secret.value = DIDKey.encodePrivateKey(keys.privateKey);
+  //secret.value = PEMFile.encode(keys);
+  btnpem.disabled = false;
+  btnpub.disabled = false;
+  btnverify.disabled = false;
+  btnsig.disabled = false;
 };
+/*
 secret.onchange = () => {
-  const keys = PEMFile.decode(secret.value);
+  const keys = DIDKey.decode(secret.value);
+  //const keys = PEMFile.decode(secret.value);
   if (!keys) {
     return;
   }
-  did.value = DID.encode(keys.publicKey);
+  did.value = DIDKey.encode(keys.publicKey);
 };
-btn2.onclick = async () => {
-  if (secret.value) {
-    await downloadFile("key.secret.pem", new TextEncoder().encode(secret.value));
-  }
-};
-class Text {
-  static normalize(s) {
-    const s2 = s.trim().split("\n");
-    let ss = s2.map(s => s.trim());
-    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
-      ss[ss.length - 1] = "";
-      const s0 = ss.join("\n");
-      const s2 = s0.trim().split("\n");
-      ss = s2.map(s => s.trim());
-    }
-    return ss.join("\n")
-  }
-  static extractSign(s) {
-    const s2 = s.trim().split("\n");
-    let ss = s2.map(s => s.trim());
-    if (ss.length > 0 && ss[ss.length - 1].startsWith("did:sign:")) {
-      return ss[ss.length - 1];
-    }
+*/
+const getKeys = () => {
+  if (!secret.value || !did.value) {
     return null;
   }
-  static encode(s) {
-    return new TextEncoder().encode(s);
+  const publicKey = DIDKey.decode(did.value).data;
+  const keys = {
+    publicKey: publicKey,
+    privateKey: bincat(DIDKey.decode(secret.value).data, publicKey),
+  };
+  return keys;
+};
+btnpem.onclick = async () => {
+  const keys = getKeys();
+  if (keys) {
+    const pem = PEMFile.encode(keys);
+    await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
   }
-  static decode(bin) {
-    return new TextDecoder().decode(bin);
-  }
-}
+};
+btnpub.onclick = async () => {
+  const publicKey = DIDKey.decode(did.value).data;
+  const pub = PubFile.encode(publicKey);
+  await downloadFile("key.pub", new TextEncoder().encode(pub));
+};
 btnsig.onclick = () => {
   const ss = Text.normalize(text.value);
   if (text.value != ss) {
     text.value = ss;
   }
-  const keys = PEMFile.decode(secret.value);
+  const keys = getKeys();
   if (!keys) {
+    alert("DIDとDIDパスワードが設定されていません");
     return;
   }
   const message = Text.encode(ss);
   const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
   //didsig.value = Base64.encode(sig);
-  text.value += "\n\ndid:sign:z" + Base58.encode(sig);
+  text.value = Text.addSign(text.value, DIDKey.encodeSign(sig));
+  //Base58.encode(sig);
 };
-btn3.onclick = () => {
+btnverify.onclick = () => {
   result.textContent = "";
   try {
     const ss = Text.normalize(text.value);
-    const publicKey = DID.decode(did.value);
-    if (!publicKey) {
+    const publicKey0 = DIDKey.decode(did.value);
+    if (!publicKey0) {
       alert("DIDが設定されていません");
       return;
     }
+    const publicKey = publicKey0.data;
     const message = Text.encode(ss);
     if (!message) {
       alert("本文が設定されていません");
       return;
     }
     //const signature = Base64.decode(didsig.value);
-    const ssig = Text.extractSign(text.value);
-    const sigpre = "did:sign:z";
-    if (!ssig || !ssig.startsWith(sigpre)) {
+    const sign = Text.extractSign(text.value);
+    if (!sign) {
       alert("電子署名が設定されていません");
       return;
     }
-    const signature = Base58.decode(ssig.substring(sigpre.length));
-    if (!signature) {
-      alert("電子署名が設定されていません");
-      return;
-    }
+    const signature = DIDKey.decode(sign).data;
     const chk = Ed25519.verify({ signature, publicKey, message, encoding: "binary" });
     if (chk) {
       result.textContent = "電子署名が検証できました。";
@@ -131,7 +137,7 @@ button {
   margin: .5em;
 }
 input {
-  width: 80vw;
+  width: 60vw;
   padding: .5em;
   margin: .5em;
 }
@@ -140,6 +146,9 @@ textarea {
   height: 10em;
   padding: .5em;
   margin: .5em;
+}
+.download {
+  font-size: 90%;
 }
 #result {
   font-size: 120%;
