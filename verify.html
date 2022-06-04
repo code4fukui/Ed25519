@@ -1,26 +1,20 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>DID電子署名ツール - DID sign tool</title>
+<title>DID電子署名検証ツール - DID verify tool</title>
 </head><body>
-<h1>DID電子署名ツール - DID sign tool</h1>
+<h1>DID電子署名検証ツール - DID verify tool</h1>
 
-<button id=btn disabled>DID作成</button><br>
 <table>
 <tr><td>DID</td><td><input id=did></td></tr>
-<tr><td>パスワード</td><td><input id=secret></td></tr>
 </table>
 <hr>
 本文<br>
 <textarea id=text></textarea><br>
-<button id=btnsig>本文にDIDとパスワードで電子署名を付ける</button>
 <button id=btnverify>電子署名付き本文をDIDで検証する</button><span id=result></span>
-<hr>
-<button id=btnpub class=download>DIDをPubファイルとして保存する</button>
-<button id=btnpem class=download>DIDとパスワードをPEMファイルとして保存する</button><br>
 <hr>
 Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
 Reference: <a href=https://www.w3.org/TR/did-core/>Decentralized Identifiers (DIDs) v1.0</a> / <a href=https://w3c-ccg.github.io/did-method-key/>The did:key Method v0.7</a><br>
-Blog: <a href=https://fukuno.jig.jp/3600>福野泰介の一日一創</a><br>
-Related: <a href=./verify.html>DID電子署名検証ツール</a><br>
+Blog: <a href=https://fukuno.jig.jp/3601>福野泰介の一日一創</a><br>
+Related: <a href=./>DID電子署名ツール</a><br>
 
 <script type="module">
 import { Ed25519 } from "./Ed25519.js";
@@ -32,64 +26,6 @@ import { Base58 } from "https://code4fukui.github.io/Base58/Base58.js";
 import { Text } from "./Text.js";
 import { bincat } from "https://js.sabae.cc/binutil.js";
 
-btn.disabled = false;
-
-btn.onclick = () => {
-  const keys = Ed25519.generateKeyPair();
-  //console.log(keys)
-  did.value = DIDKey.encodePublicKey(keys.publicKey);
-  secret.value = DIDKey.encodePrivateKey(keys.privateKey);
-  //secret.value = PEMFile.encode(keys);
-};
-/*
-secret.onchange = () => {
-  const keys = DIDKey.decode(secret.value);
-  //const keys = PEMFile.decode(secret.value);
-  if (!keys) {
-    return;
-  }
-  did.value = DIDKey.encode(keys.publicKey);
-};
-*/
-const getKeys = () => {
-  if (!secret.value || !did.value) {
-    return null;
-  }
-  const publicKey = DIDKey.decode(did.value).data;
-  const keys = {
-    publicKey: publicKey,
-    privateKey: bincat(DIDKey.decode(secret.value).data, publicKey),
-  };
-  return keys;
-};
-btnpem.onclick = async () => {
-  const keys = getKeys();
-  if (keys) {
-    const pem = PEMFile.encode(keys);
-    await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
-  }
-};
-btnpub.onclick = async () => {
-  const publicKey = DIDKey.decode(did.value).data;
-  const pub = PubFile.encode(publicKey);
-  await downloadFile("key.pub", new TextEncoder().encode(pub));
-};
-btnsig.onclick = () => {
-  const ss = Text.normalize(text.value);
-  if (text.value != ss) {
-    text.value = ss;
-  }
-  const keys = getKeys();
-  if (!keys) {
-    alert("DIDとDIDパスワードが設定されていません");
-    return;
-  }
-  const message = Text.encode(ss);
-  const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
-  //didsig.value = Base64.encode(sig);
-  text.value = Text.addSign(text.value, DIDKey.encodeSign(sig));
-  //Base58.encode(sig);
-};
 btnverify.onclick = () => {
   result.textContent = "";
   try {
