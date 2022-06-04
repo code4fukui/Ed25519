@@ -11,11 +11,11 @@
 <hr>
 本文<br>
 <textarea id=text></textarea><br>
-<button id=btnsig disabled>本文にDIDとパスワードで電子署名を付ける</button>
-<button id=btnverify disabled>電子署名付き本文をDIDで検証する</button><span id=result></span>
+<button id=btnsig>本文にDIDとパスワードで電子署名を付ける</button>
+<button id=btnverify>電子署名付き本文をDIDで検証する</button><span id=result></span>
 <hr>
-<button id=btnpub disabled class=download>DIDをPubファイルとして保存する</button>
-<button id=btnpem disabled class=download>DIDとパスワードをPEMファイルとして保存する</button><br>
+<button id=btnpub class=download>DIDをPubファイルとして保存する</button>
+<button id=btnpem class=download>DIDとパスワードをPEMファイルとして保存する</button><br>
 <hr>
 Lib: <a href=https://github.com/code4fukui/Ed25519>Ed25519 lib - Code for FUKUI</a><br>
 Reference: <a href=https://www.w3.org/TR/did-core/>Decentralized Identifiers (DIDs) v1.0</a> / <a href=https://w3c-ccg.github.io/did-method-key/>The did:key Method v0.7</a><br>
@@ -39,10 +39,6 @@ btn.onclick = () => {
   did.value = DIDKey.encodePublicKey(keys.publicKey);
   secret.value = DIDKey.encodePrivateKey(keys.privateKey);
   //secret.value = PEMFile.encode(keys);
-  btnpem.disabled = false;
-  btnpub.disabled = false;
-  btnverify.disabled = false;
-  btnsig.disabled = false;
 };
 /*
 secret.onchange = () => {
