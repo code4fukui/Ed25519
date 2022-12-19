@@ -82,6 +82,10 @@ btnsig.onclick = () => {
   }
   */
   const ss = text.value;
+  if (!ss) {
+    alert("本文が設定されていません");
+    return;
+  }
   const keys = getKeys();
   if (!keys) {
     alert("DIDとDIDパスワードが設定されていません");
@@ -108,16 +112,16 @@ btnverify.onclick = () => {
     //const signature = Base64.decode(didsig.value);
     let cnt = 0;
     let stext = text.value;
+    if (!stext) {
+      alert("本文が設定されていません");
+      return;
+    }
     for (;;) {
       const [stext2, sign0] = Text.extractSign(stext);
       if (!sign0) {
         break;
       }
       const message = Text.encode(stext2.trim());
-      if (!message) {
-        alert("本文が設定されていません");
-        return;
-      }
       const [publicKey0, sign] = sign0.split("-");
       const publicKey = DIDKey.decode(publicKey0).data;
       const signature = DIDKey.decode(sign).data;
