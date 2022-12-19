@@ -31,6 +31,7 @@ import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { Base58 } from "https://code4fukui.github.io/Base58/Base58.js";
 import { Text } from "./Text.js";
 import { bincat } from "https://js.sabae.cc/binutil.js";
+import { setFileDropHandler } from "https://js.sabae.cc/setFileDropHandler.js";
 
 btn.disabled = false;
 
@@ -145,6 +146,8 @@ btnverify.onclick = () => {
     result.textContent = "！！不正な電子署名です！！";
   }
 };
+
+setFileDropHandler(text, (buf) => text.value = new TextDecoder().decode(new Uint8Array(buf)));
 </script>
 
 <style>
