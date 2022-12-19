@@ -81,7 +81,7 @@ btnsig.onclick = () => {
     text.value = ss;
   }
   */
-  const ss = text.value;
+  const ss = text.value.trim();
   if (!ss) {
     alert("本文が設定されていません");
     return;
