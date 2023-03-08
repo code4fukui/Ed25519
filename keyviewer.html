@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>keyviewer</title>
+</head><body>
+
+<h1>keyviewer</h1>
+<textarea id=res></textarea>
+
+<script type="module">
+import { waitDropFiles } from "https://code4sabae.github.io/js/waitDropFiles.js";
+import { readAsArrayBufferAsync } from "https://code4sabae.github.io/js/readAsArrayBufferAsync.js";
+import { PEMFile } from "./PEMFile.js";
+import { PubFile } from "./PubFile.js";
+import { DIDKey } from "./DIDKey.js";
+
+for (;;) {
+  const items = await waitDropFiles(document.body);
+  for (const item of items) {
+    const fn = item.file.name;
+    if (!(fn.endsWith(".pub") || fn.endsWith(".pem"))) {
+      alert("ファイル形式が違います。鍵ファイルをドロップしてください。")
+      break;
+    }
+    const file = item.file;
+    const bin = await readAsArrayBufferAsync(file);
+    const txt = new TextDecoder().decode(bin);
+    if (fn.endsWith(".pub")) {
+      const key = PubFile.decode(txt);
+      const did = DIDKey.encodePublicKey(key);
+      res.value = did;
+    } else if (fn.endsWith(".pem")) {
+      const keys = PEMFile.decode(txt);
+      const did = DIDKey.encodePublicKey(keys.publicKey);
+      const password = DIDKey.encodePrivateKey(keys.privateKey);
+      res.value = did + "\n" + password;
+    }
+  }
+}
+</script>
+
+<style>
+textarea {
+  width: 80vw;
+  height: 10em;
+}
+</style>
+</body>
+</html>
