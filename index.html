@@ -33,6 +33,27 @@ import { Text } from "./Text.js";
 import { bincat } from "https://js.sabae.cc/binutil.js";
 import { setFileDropHandler } from "https://js.sabae.cc/setFileDropHandler.js";
 
+const equalsBin = (b1, b2) => {
+  if (b1 == b2) {
+    return true;
+  }
+  if (!b1 || !b2) {
+    return false;
+  }
+  if (typeof(b1) != typeof(b2)) {
+    return false;
+  }
+  if (b1.length != b2.length) {
+    return false;
+  }
+  for (let i = 0; i < b1.length; i++) {
+    if (b1[i] != b2[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 btn.disabled = false;
 
 btn.onclick = () => {
@@ -95,6 +116,7 @@ btnsig.onclick = () => {
   const message = Text.encode(ss);
   const sig = Ed25519.sign({ privateKey: keys.privateKey, message, encoding: "binary" });
   //didsig.value = Base64.encode(sig);
+  console.log("sign", keys.publicKey);
   text.value = Text.addSign(text.value, DIDKey.encode(keys.publicKey) + "-" + DIDKey.encodeSign(sig));
   //Base58.encode(sig);
 };
@@ -103,14 +125,26 @@ btnverify.onclick = () => {
   try {
     /*
     const ss = Text.normalize(text.value);
-    const publicKey0 = DIDKey.decode(did.value);
+    */
+    //const signature = Base64.decode(didsig.value);
+    let publicKeySet = null;
+    if (did.value.length > 0) {
+      try {
+        publicKeySet = DIDKey.decode(did.value).data || "key";
+      } catch (e) {
+        alert("不正なDIDです");
+        return;
+      }
+    }
+    console.log(publicKeySet)
+    /*
     if (!publicKey0) {
       alert("DIDが設定されていません");
       return;
     }
     const publicKey = publicKey0.data;
     */
-    //const signature = Base64.decode(didsig.value);
+
     let cnt = 0;
     let stext = text.value;
     if (!stext) {
@@ -125,6 +159,11 @@ btnverify.onclick = () => {
       const message = Text.encode(stext2.trim());
       const [publicKey0, sign] = sign0.split("-");
       const publicKey = DIDKey.decode(publicKey0).data;
+      console.log("from sign", publicKey, "set pub", publicKeySet)
+      if (publicKeySet && !equalsBin(publicKey, publicKeySet)) {
+        alert("公開鍵が一致しません");
+        return;
+      }
       const signature = DIDKey.decode(sign).data;
       const chk = Ed25519.verify({ signature, publicKey, message, encoding: "binary" });
       if (chk) {
