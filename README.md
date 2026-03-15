@@ -1,5 +1,7 @@
 # Ed25519
 
+> 日本語のREADMEはこちらです: [README.ja.md](README.ja.md)
+
 A DID (Decentralized Identifier) e-signature tool based on the Ed25519 algorithm.
 
 ## Demo
