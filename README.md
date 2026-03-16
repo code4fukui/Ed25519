@@ -30,4 +30,4 @@ This will output the private and public keys as PEM and PubFile formats.
 - [forge-es](https://github.com/taisukef/forge-es) - Forked from [digitalbazaar/forge](https://github.com/digitalbazaar/forge)
 
 ## License
-MIT License
+MIT License — see [LICENSE](LICENSE).
